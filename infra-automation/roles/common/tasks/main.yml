@@ -1,0 +1,12 @@
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install common packages
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present

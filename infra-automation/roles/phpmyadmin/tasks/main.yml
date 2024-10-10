@@ -1,0 +1,10 @@
+- name: Install PHPMyAdmin
+  apt:
+    name: phpmyadmin
+    state: present
+
+- name: Configure PHPMyAdmin NGINX vhost
+  template:
+    src: phpmyadmin.conf.j2
+    dest: /etc/nginx/sites-available/phpmyadmin.conf
+  notify: Reload NGINX

@@ -1,0 +1,133 @@
+- name: Add entry to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "127.0.0.1 test.mgt.com"
+    state: present
+
+- name: Create Magento user
+  user:
+    name: magento
+    shell: /bin/bash
+    home: /home/magento
+    create_home: yes
+
+- name: Install Composer
+  apt:
+    name: composer
+    state: present
+
+- name: Create Magento installation directory
+  file:
+    path: /var/www/html/magento
+    state: directory
+    owner: magento
+    group: magento
+    mode: '0755'
+
+- name: Ensure .composer directory exists
+  file:
+    path: /home/magento/.composer
+    state: directory
+    owner: magento
+    group: magento
+    mode: '0755'
+
+- name: Create Composer auth.json file
+  become: yes
+  become_user: magento
+  copy:
+    content: |
+      {
+        "http-basic": {
+          "repo.magento.com": {
+            "username": "{{ lookup('env', 'MAGENTO_PUBLIC_KEY') }}",
+            "password": "{{ lookup('env', 'MAGENTO_PRIVATE_KEY') }}"
+          }
+        }
+      }
+    dest: /home/magento/.composer/auth.json
+    mode: '0600'
+
+- name: Install Magento 2 via Composer
+  become: yes
+  become_user: magento
+  composer:
+    command: create-project
+    arguments: --repository-url=https://repo.magento.com/ magento/project-community-edition . --ignore-platform-reqs
+    working_dir: /var/www/html/magento
+  environment:
+    COMPOSER_HOME: /home/magento/.composer
+    MAGENTO_PUBLIC_KEY: "{{ lookup('env', 'MAGENTO_PUBLIC_KEY') }}"
+    MAGENTO_PRIVATE_KEY: "{{ lookup('env', 'MAGENTO_PRIVATE_KEY') }}"
+
+- name: Set ownership of Magento files
+  file:
+    path: /var/www/html/magento
+    owner: magento
+    group: magento
+    recurse: yes
+
+- name: Check MariaDB version
+  command: mysql --version
+  register: mariadb_version
+  changed_when: false
+
+- name: Display MariaDB version
+  debug:
+    var: mariadb_version.stdout
+
+- name: Configure Magento 2
+  become: yes
+  become_user: magento
+  command: >
+    php bin/magento setup:install
+    --base-url=https://test.mgt.com
+    --db-host=localhost
+    --db-name=magento
+    --db-user=root
+    --db-password={{ mariadb_root_password }}
+    --admin-firstname=Admin
+    --admin-lastname=User
+    --admin-email=admin@example.com
+    --admin-user=admin
+    --admin-password={{ magento_admin_password }}
+    --language=en_US
+    --currency=USD
+    --timezone=America/Chicago
+    --use-rewrites=1
+    --search-engine=elasticsearch7
+    --elasticsearch-host=localhost
+  args:
+    chdir: /var/www/html/magento
+
+- name: Set correct permissions for Magento files
+  file:
+    path: /var/www/html/magento
+    owner: magento
+    group: www-data
+    mode: 'u=rwX,g=rX,o='
+    recurse: yes
+
+- name: Set more permissive permissions for specific directories
+  file:
+    path: "{{ item }}"
+    mode: 'u=rwX,g=rwX,o='
+    recurse: yes
+  loop:
+    - /var/www/html/magento/var
+    - /var/www/html/magento/pub/media
+    - /var/www/html/magento/app/etc
+
+- name: Ensure Magento CLI is executable
+  file:
+    path: /var/www/html/magento/bin/magento
+    mode: 'u+x,g+x'
+
+- name: Save Magento admin credentials
+  copy:
+    content: |
+      Magento Admin URL: https://test.mgt.com/admin
+      Magento Admin Username: admin
+      Magento Admin Password: {{ magento_admin_password }}
+    dest: /root/magento_credentials/magento_admin_credentials.txt
+    mode: '0600'

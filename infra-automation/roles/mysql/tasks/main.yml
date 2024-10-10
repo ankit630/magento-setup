@@ -1,0 +1,71 @@
+- name: Import MariaDB GPG key
+  apt_key:
+    url: https://mariadb.org/mariadb_release_signing_key.asc
+    state: present
+
+- name: Add MariaDB repository
+  apt_repository:
+    repo: deb [arch=amd64] http://mirror.mva-n.net/mariadb/repo/10.6/debian bullseye main
+    state: present
+    filename: mariadb
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install MariaDB 10.6
+  apt:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+
+- name: Ensure MariaDB is started and enabled
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Generate MariaDB root password
+  set_fact:
+    mariadb_root_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+
+- name: Update MariaDB root password
+  mysql_user:
+    name: root
+    host_all: yes
+    password: "{{ mariadb_root_password }}"
+    check_implicit_admin: yes
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Save MariaDB root password
+  copy:
+    content: "MariaDB Root Password: {{ mariadb_root_password }}"
+    dest: /root/magento_credentials/mariadb_root_password.txt
+    mode: '0600'
+
+- name: Create Magento database
+  mysql_db:
+    name: magento
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Create Magento database user
+  mysql_user:
+    name: magento
+    password: "{{ magento_db_password }}"
+    priv: 'magento.*:ALL'
+    host: localhost
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Save Magento database credentials
+  copy:
+    content: |
+      Magento Database Name: magento
+      Magento Database User: magento
+      Magento Database Password: {{ magento_db_password }}
+    dest: /root/magento_credentials/magento_db_credentials.txt
+    mode: '0600'

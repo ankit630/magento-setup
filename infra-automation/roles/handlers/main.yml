@@ -1,0 +1,14 @@
+- name: Reload NGINX
+  service:
+    name: nginx
+    state: reloaded
+
+- name: Restart Varnish
+  service:
+    name: varnish
+    state: restarted
+
+- name: Restart PHP-FPM
+  systemd:
+    name: php8.1-fpm
+    state: restarted
