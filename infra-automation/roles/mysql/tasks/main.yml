@@ -1,24 +1,56 @@
-- name: Import MariaDB GPG key
-  apt_key:
-    url: https://mariadb.org/mariadb_release_signing_key.asc
-    state: present
-
-- name: Add MariaDB repository
-  apt_repository:
-    repo: deb [arch=amd64] http://mirror.mva-n.net/mariadb/repo/10.6/debian bullseye main
-    state: present
-    filename: mariadb
+---
 
 - name: Update apt cache
   apt:
     update_cache: yes
 
-- name: Install MariaDB 10.6
+- name: Install dependencies
   apt:
     name:
-      - mariadb-server
-      - mariadb-client
+      - software-properties-common
+      - dirmngr
     state: present
+
+- name: Add MariaDB GPG key
+  apt_key:
+    url: https://mariadb.org/mariadb_release_signing_key.asc
+    state: present
+
+- name: Add MariaDB 10.6 repository
+  apt_repository:
+    repo: deb [arch=amd64] http://mirror.mva-n.net/mariadb/repo/10.6/debian bullseye main
+    state: present
+    filename: mariadb
+
+- name: Add Debian Bullseye repository
+  apt_repository:
+    repo: deb http://deb.debian.org/debian bullseye main
+    state: present
+    filename: debian-bullseye
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install libssl1.1
+  apt:
+    name: libssl1.1
+    state: present
+    default_release: bullseye
+
+- name: Install MariaDB 10.6 and dependencies
+  apt:
+    name:
+      - galera-4
+      - mariadb-client-core-10.6
+      - mariadb-server-core-10.6
+      - libdbd-mariadb-perl
+      - libterm-readkey-perl
+      - libhtml-template-perl
+      - mariadb-server-10.6
+      - mariadb-client-10.6
+    state: present
+    default_release: bullseye
 
 - name: Ensure MariaDB is started and enabled
   systemd:
@@ -26,17 +58,64 @@
     state: started
     enabled: yes
 
+- name: Check MariaDB version
+  command: mysql --version
+  register: mariadb_version
+  changed_when: false
+
+- name: Display MariaDB version
+  debug:
+    var: mariadb_version.stdout
+
 - name: Generate MariaDB root password
   set_fact:
     mariadb_root_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
 
-- name: Update MariaDB root password
-  mysql_user:
-    name: root
-    host_all: yes
-    password: "{{ mariadb_root_password }}"
-    check_implicit_admin: yes
-    login_unix_socket: /var/run/mysqld/mysqld.sock
+- name: Create mysql_secure_installation expect script
+  copy:
+    content: |
+      #!/usr/bin/expect -f
+      set timeout -1
+      spawn mysql_secure_installation
+      expect "Enter current password for root (enter for none):"
+      send "\r"
+      expect "Switch to unix_socket authentication"
+      send "n\r"
+      expect "Change the root password?"
+      send "y\r"
+      expect "New password:"
+      send "{{ mariadb_root_password }}\r"
+      expect "Re-enter new password:"
+      send "{{ mariadb_root_password }}\r"
+      expect "Remove anonymous users?"
+      send "y\r"
+      expect "Disallow root login remotely?"
+      send "y\r"
+      expect "Remove test database and access to it?"
+      send "y\r"
+      expect "Reload privilege tables now?"
+      send "y\r"
+      expect eof
+    dest: /tmp/mysql_secure_installation.exp
+    mode: '0700'
+
+- name: Run mysql_secure_installation
+  command: /tmp/mysql_secure_installation.exp
+  register: secure_mysql
+
+- name: Remove mysql_secure_installation expect script
+  file:
+    path: /tmp/mysql_secure_installation.exp
+    state: absent
+
+- name: Check MariaDB version
+  command: mysql -V
+  register: mariadb_version
+  changed_when: false
+
+- name: Display MariaDB version
+  debug:
+    var: mariadb_version.stdout
 
 - name: Save MariaDB root password
   copy:
