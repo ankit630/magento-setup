@@ -26,3 +26,22 @@
     regexp: '^user'
     line: 'user test-ssh;'
   notify: Reload NGINX
+
+- name: Copy Magento NGINX configuration
+  template:
+    src: magento_nginx.conf.j2
+    dest: /etc/nginx/sites-available/magento.conf
+  notify: Test NGINX configuration
+
+- name: Enable Magento NGINX configuration
+  file:
+    src: /etc/nginx/sites-available/magento.conf
+    dest: /etc/nginx/sites-enabled/magento.conf
+    state: link
+  notify: Test NGINX configuration
+
+- name: Remove default NGINX configuration
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Test NGINX configuration

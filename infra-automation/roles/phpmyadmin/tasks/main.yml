@@ -3,10 +3,20 @@
     name: phpmyadmin
     state: present
 
+- name: Set correct ownership and permissions for PHPMyAdmin
+  file:
+    path: /usr/share/phpmyadmin
+    owner: www-data
+    group: www-data
+    mode: '0755'
+    recurse: yes
+
 - name: Configure PHPMyAdmin NGINX vhost
   template:
     src: phpmyadmin.conf.j2
     dest: /etc/nginx/sites-available/phpmyadmin.conf
+    owner: root
+    group: root
     mode: '0644'
   notify: Reload NGINX
 
