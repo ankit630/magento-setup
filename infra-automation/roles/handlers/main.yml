@@ -17,3 +17,8 @@
   systemd:
     name: php8.1-fpm
     state: restarted
+
+- name: Restart Nginx
+  systemd:
+    name: nginx
+    state: restarted
