@@ -40,6 +40,11 @@
       - php8.1-opcache
     state: present
 
+- name: Ensure PHP 8.1 is the default version
+  alternatives:
+    name: php
+    path: /usr/bin/php8.1
+
 - name: Ensure PHP-FPM service is started and enabled
   systemd:
     name: php8.1-fpm
