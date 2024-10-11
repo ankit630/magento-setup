@@ -1,3 +1,9 @@
+- name: Ensure test-ssh user exists
+  user:
+    name: test-ssh
+    state: present
+    system: yes
+    
 - name: Install NGINX
   apt:
     name: nginx
@@ -8,3 +14,4 @@
     path: /etc/nginx/nginx.conf
     regexp: '^user'
     line: 'user test-ssh;'
+  notify: Reload NGINX
