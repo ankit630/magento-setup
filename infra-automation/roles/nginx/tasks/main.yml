@@ -4,15 +4,15 @@
     state: present
     system: yes
 
-- name: Ensure www-data group exists
+- name: Ensure clp group exists
   group:
-    name: www-data
+    name: clp
     state: present
 
 - name: Add test-ssh user to www-data group
   user:
     name: test-ssh
-    groups: www-data
+    groups: clp
     append: yes
     
 - name: Install NGINX
@@ -24,7 +24,7 @@
   lineinfile:
     path: /etc/nginx/nginx.conf
     regexp: '^user'
-    line: 'user test-ssh;'
+    line: 'user test-ssh clp;'
   notify: Reload NGINX
 
 - name: Copy Magento NGINX configuration
