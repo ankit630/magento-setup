@@ -6,8 +6,8 @@
 - name: Set correct ownership and permissions for PHPMyAdmin
   file:
     path: /usr/share/phpmyadmin
-    owner: www-data
-    group: www-data
+    owner: test-ssh
+    group: clp
     mode: '0755'
     recurse: yes
 

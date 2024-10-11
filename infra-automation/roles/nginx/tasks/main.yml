@@ -9,7 +9,7 @@
     name: clp
     state: present
 
-- name: Add test-ssh user to www-data group
+- name: Add test-ssh user to clp group
   user:
     name: test-ssh
     groups: clp

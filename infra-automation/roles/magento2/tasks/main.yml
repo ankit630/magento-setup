@@ -110,8 +110,8 @@
 - name: Set correct permissions for Magento files
   file:
     path: /var/www/html/magento
-    owner: magento
-    group: www-data
+    owner: test-ssh
+    group: clp
     mode: 'u=rwX,g=rX,o='
     recurse: yes
 
