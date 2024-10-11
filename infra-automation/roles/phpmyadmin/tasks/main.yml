@@ -7,4 +7,13 @@
   template:
     src: phpmyadmin.conf.j2
     dest: /etc/nginx/sites-available/phpmyadmin.conf
+    mode: '0644'
   notify: Reload NGINX
+
+- name: Enable PHPMyAdmin NGINX vhost
+  file:
+    src: /etc/nginx/sites-available/phpmyadmin.conf
+    dest: /etc/nginx/sites-enabled/phpmyadmin.conf
+    state: link
+  notify: Reload NGINX
+

@@ -7,9 +7,7 @@
     phpmyadmin_domain: "pma.mgt.com"
     magento_user: "test-ssh"
     magento_group: "clp"
-    magento_db_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
-    magento_admin_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
-    mariadb_root_password: "{{ lookup('file', '/root/magento_credentials/mariadb_root_password.txt') | regex_replace('^MariaDB Root Password: (.*)$', '\\1') }}"
+    magento_db_password: "{{ lookup('env', 'MAGENTO_DB_PASSWORD') }}"
     magento_admin_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
 
   roles:
@@ -24,3 +22,11 @@
     - role: varnish
   handlers:
     - include: roles/handlers/main.yml
+
+  post_tasks:
+    - name: Debug Magento database credentials
+      debug:
+        msg:
+          - "Magento DB User: {{ magento_db_user }}"
+          - "Magento DB Name: {{ magento_db_name }}"
+          - "Magento DB Password: {{ magento_db_password }}"

@@ -76,6 +76,13 @@
   debug:
     var: mariadb_version.stdout
 
+- name: Debug Magento database credentials
+  debug:
+    msg:
+      - "Magento DB User: {{ magento_db_user }}"
+      - "Magento DB Name: {{ magento_db_name }}"
+      - "Magento DB Password: {{ magento_db_password }}"
+
 - name: Configure Magento 2
   become: yes
   become_user: magento
@@ -83,9 +90,9 @@
     php bin/magento setup:install
     --base-url=https://test.mgt.com
     --db-host=localhost
-    --db-name=magento
-    --db-user=root
-    --db-password={{ mariadb_root_password }}
+    --db-name={{ magento_db_name }}
+    --db-user={{ magento_db_user }}
+    --db-password={{ magento_db_password }}
     --admin-firstname=Admin
     --admin-lastname=User
     --admin-email=admin@example.com

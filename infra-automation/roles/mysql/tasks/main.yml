@@ -73,29 +73,29 @@
   debug:
     var: mysql_connect_check
 
-- name: Decide whether to set a password
+- name: Set fact for passwordless connection
   set_fact:
-    set_password: "{{ mysql_connect_check.rc != 0 }}"
+    mariadb_passwordless: "{{ mysql_connect_check.rc == 0 }}"
 
-- name: Generate MariaDB root password
+- name: Generate MariaDB root password if needed
   set_fact:
     mariadb_root_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
-  when: set_password
+  when: not mariadb_passwordless
 
-- name: Set MariaDB root password
+- name: Set MariaDB root password if needed
   mysql_user:
     name: root
     host_all: yes
     password: "{{ mariadb_root_password }}"
     login_unix_socket: /var/run/mysqld/mysqld.sock
-  when: set_password
+  when: not mariadb_passwordless
 
 - name: Create Magento database
   mysql_db:
     name: magento
     state: present
     login_user: root
-    login_password: "{{ mariadb_root_password | default(omit) }}"
+    login_password: ""
     login_unix_socket: /var/run/mysqld/mysqld.sock
 
 - name: Create Magento database user
@@ -106,8 +106,13 @@
     host: localhost
     state: present
     login_user: root
-    login_password: "{{ mariadb_root_password | default(omit) }}"
+    login_password: ""
     login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Set fact for Magento database credentials
+  set_fact:
+    magento_db_user: magento
+    magento_db_name: magento
 
 - name: Ensure credential directory exists
   file:
@@ -118,7 +123,10 @@
 - name: Save MariaDB credentials
   copy:
     content: |
-      MariaDB Root Password: {{ mariadb_root_password | default('No password set') }}
+      MariaDB Root Authentication: {{ 'Passwordless' if mariadb_passwordless else 'Password-protected' }}
+      {% if not mariadb_passwordless %}
+      MariaDB Root Password: {{ mariadb_root_password }}
+      {% endif %}
       Magento Database Name: magento
       Magento Database User: magento
       Magento Database Password: {{ magento_db_password }}

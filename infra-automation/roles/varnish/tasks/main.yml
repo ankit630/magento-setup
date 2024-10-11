@@ -8,3 +8,9 @@
     src: default.vcl.j2
     dest: /etc/varnish/default.vcl
   notify: Restart Varnish
+
+- name: Ensure Varnish is started and enabled
+  systemd:
+    name: varnish
+    state: started
+    enabled: yes
