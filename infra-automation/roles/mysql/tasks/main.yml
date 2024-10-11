@@ -1,149 +1,102 @@
----
+- name: Create keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download MariaDB GPG key
+  get_url:
+    url: https://mariadb.org/mariadb_release_signing_key.asc
+    dest: /etc/apt/keyrings/mariadb-keyring.asc
+    mode: '0644'
+
+- name: Create MariaDB sources file
+  copy:
+    content: |
+      # MariaDB 10.6 repository list
+      # https://mariadb.org/download/
+      X-Repolib-Name: MariaDB
+      Types: deb
+      URIs: https://mirror.rackspace.com/mariadb/repo/10.6/debian
+      Suites: bullseye
+      Components: main
+      Signed-By: /etc/apt/keyrings/mariadb-keyring.asc
+    dest: /etc/apt/sources.list.d/mariadb.sources
+    mode: '0644'
+
+- name: Add Debian Bullseye repository
+  copy:
+    content: "deb http://deb.debian.org/debian bullseye main"
+    dest: /etc/apt/sources.list.d/bullseye.list
+    mode: '0644'
+
 - name: Update apt cache
   apt:
     update_cache: yes
 
-- name: Install dependencies
+- name: Install MariaDB 10.6
   apt:
     name:
-      - software-properties-common
-      - dirmngr
-      - wget
+      - mariadb-server-10.6
+      - mariadb-server-core-10.6
+      - mariadb-client-10.6
     state: present
 
-- name: Install pexpect
-  pip:
-    name: pexpect
+- name: Install Python MySQL module
+  apt:
+    name:
+      - python3-pymysql
     state: present
 
-- name: Download MySQL APT repository package
-  uri:
-    url: https://repo.mysql.com/mysql-apt-config_0.8.25-1_all.deb
-    method: GET
-    return_content: yes
-    headers:
-      User-Agent: "Wget/1.21.1 (linux-gnu)"
-  register: download_result
-  retries: 3
-  delay: 5
-  until: download_result.status == 200
-
-- name: Save the downloaded content to a file
-  copy:
-    content: "{{ download_result.content }}"
-    dest: /tmp/mysql-apt-config.deb
-
-- name: Install MySQL APT repository package
-  apt:
-    deb: /tmp/mysql-apt-config.deb
-  register: apt_result
-  retries: 3
-  delay: 5
-  until: apt_result is success
-
-- name: Configure MySQL APT repository
-  expect:
-    command: /usr/bin/dpkg-reconfigure mysql-apt-config
-    responses:
-      'Which MySQL product do you wish to configure\?': ''
-      'Which server version do you wish to receive\?': 'mysql-8.0'
-      'Apply the changes made above\?': 'Ok'
-    timeout: 300
-
-- name: Update apt cache
-  apt:
-    update_cache: yes
-
-- name: Install MySQL server
-  apt:
-    name: mysql-server
-    state: present
-  environment:
-    DEBIAN_FRONTEND: noninteractive
-  register: mysql_install
-  retries: 3
-  delay: 5
-  until: mysql_install is success
-
-- name: Ensure MySQL is started and enabled
+- name: Ensure MariaDB is started and enabled
   systemd:
-    name: mysql
+    name: mariadb
     state: started
     enabled: yes
 
-- name: Check MySQL version
+- name: Check MariaDB version
   command: mysql --version
-  register: mysql_version
+  register: mariadb_version
   changed_when: false
 
-- name: Display MySQL version
+- name: Display MariaDB version
   debug:
-    var: mysql_version.stdout
+    var: mariadb_version.stdout
 
-- name: Generate MySQL root password
+- name: Check if we can connect to MariaDB without password
+  command: mysql -u root -e "SELECT 1"
+  register: mysql_connect_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Display MySQL connection check result
+  debug:
+    var: mysql_connect_check
+
+- name: Decide whether to set a password
   set_fact:
-    mysql_root_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+    set_password: "{{ mysql_connect_check.rc != 0 }}"
 
-- name: Create mysql_secure_installation expect script
-  copy:
-    content: |
-      #!/usr/bin/expect -f
-      set timeout -1
-      spawn mysql_secure_installation
-      expect "Enter password for user root:"
-      send "{{ mysql_root_password }}\r"
-      expect "Press y|Y for Yes, any other key for No:"
-      send "Y\r"
-      expect "Please enter 0 = LOW, 1 = MEDIUM and 2 = STRONG:"
-      send "2\r"
-      expect "Change the password for root ? ((Press y|Y for Yes, any other key for No) :"
-      send "n\r"
-      expect "Remove anonymous users? (Press y|Y for Yes, any other key for No) :"
-      send "Y\r"
-      expect "Disallow root login remotely? (Press y|Y for Yes, any other key for No) :"
-      send "Y\r"
-      expect "Remove test database and access to it? (Press y|Y for Yes, any other key for No) :"
-      send "Y\r"
-      expect "Reload privilege tables now? (Press y|Y for Yes, any other key for No) :"
-      send "Y\r"
-      expect eof
-    dest: /tmp/mysql_secure_installation.exp
-    mode: '0700'
+- name: Generate MariaDB root password
+  set_fact:
+    mariadb_root_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+  when: set_password
 
-- name: Run mysql_secure_installation
-  command: /tmp/mysql_secure_installation.exp
-  register: secure_mysql
-
-- name: Remove mysql_secure_installation expect script
-  file:
-    path: /tmp/mysql_secure_installation.exp
-    state: absent
-
-- name: Check MySQL version
-  command: mysql -V
-  register: mysql_version
-  changed_when: false
-
-- name: Display MySQL version
-  debug:
-    var: mysql_version.stdout
-
-- name: Save MySQL root password
-  copy:
-    content: "MySQL Root Password: {{ mysql_root_password }}"
-    dest: /root/magento_credentials/mysql_root_password.txt
-    mode: '0600'
+- name: Set MariaDB root password
+  mysql_user:
+    name: root
+    host_all: yes
+    password: "{{ mariadb_root_password }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: set_password
 
 - name: Create Magento database
   mysql_db:
     name: magento
     state: present
     login_user: root
-    login_password: "{{ mysql_root_password }}"
-
-- name: Generate Magento database password
-  set_fact:
-    magento_db_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+    login_password: "{{ mariadb_root_password | default(omit) }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
 
 - name: Create Magento database user
   mysql_user:
@@ -153,13 +106,21 @@
     host: localhost
     state: present
     login_user: root
-    login_password: "{{ mysql_root_password }}"
+    login_password: "{{ mariadb_root_password | default(omit) }}"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
 
-- name: Save Magento database credentials
+- name: Ensure credential directory exists
+  file:
+    path: /root/magento_credentials
+    state: directory
+    mode: '0700'
+
+- name: Save MariaDB credentials
   copy:
     content: |
+      MariaDB Root Password: {{ mariadb_root_password | default('No password set') }}
       Magento Database Name: magento
       Magento Database User: magento
       Magento Database Password: {{ magento_db_password }}
-    dest: /root/magento_credentials/magento_db_credentials.txt
+    dest: /root/magento_credentials/mariadb_credentials.txt
     mode: '0600'
