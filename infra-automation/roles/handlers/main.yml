@@ -3,6 +3,11 @@
     name: nginx
     state: reloaded
 
+- name: Test NGINX configuration
+  command: nginx -t
+  changed_when: false
+  notify: Reload NGINX
+
 - name: Restart Varnish
   service:
     name: varnish
