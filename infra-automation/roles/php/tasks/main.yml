@@ -14,6 +14,13 @@
     state: present
     filename: php.list
 
+- name: Remove other PHP versions
+  apt:
+    name:
+      - php8.3
+      - php8.3-*
+    state: absent
+
 - name: Update apt cache
   apt:
     update_cache: yes
@@ -44,6 +51,39 @@
   alternatives:
     name: php
     path: /usr/bin/php8.1
+  register: php_cli_alternative
+
+- name: Update alternatives for PHP-FPM
+  alternatives:
+    name: php-fpm
+    path: /usr/sbin/php-fpm8.1
+  register: php_fpm_alternative
+
+- name: Display PHP CLI alternative update result
+  debug:
+    var: php_cli_alternative
+
+- name: Display PHP-FPM alternative update result
+  debug:
+    var: php_fpm_alternative
+
+- name: Verify PHP version
+  command: php -v
+  register: php_version
+  changed_when: false
+
+- name: Display PHP version
+  debug:
+    var: php_version.stdout_lines
+
+- name: Verify PHP-FPM version
+  command: php-fpm -v
+  register: php_fpm_version
+  changed_when: false
+
+- name: Display PHP-FPM version
+  debug:
+    var: php_fpm_version.stdout_lines
 
 - name: Create custom PHP-FPM pool configuration
   template:
