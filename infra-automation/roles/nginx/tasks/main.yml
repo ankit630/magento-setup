@@ -3,6 +3,17 @@
     name: test-ssh
     state: present
     system: yes
+
+- name: Ensure www-data group exists
+  group:
+    name: www-data
+    state: present
+
+- name: Add test-ssh user to www-data group
+  user:
+    name: test-ssh
+    groups: www-data
+    append: yes
     
 - name: Install NGINX
   apt:
@@ -15,14 +26,3 @@
     regexp: '^user'
     line: 'user test-ssh;'
   notify: Reload NGINX
-
-- name: Ensure www-data group exists
-  group:
-    name: www-data
-    state: present
-
-- name: Add test-ssh user to www-data group
-  user:
-    name: test-ssh
-    groups: www-data
-    append: yes
