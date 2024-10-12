@@ -260,11 +260,25 @@
     chdir: /var/www/html/magento
   when: admin_user_check.rc == 0
 
-- name: Reset admin password
-  command: php8.1 bin/magento admin:user:set-password {{ magento_admin_user }} {{ magento_admin_password }}
+- name: Create or update admin user
+  command: >
+    php8.1 bin/magento admin:user:create 
+    --admin-user=admin 
+    --admin-password="{{ magento_admin_password }}" 
+    --admin-email={{ magento_admin_email }} 
+    --admin-firstname={{ magento_admin_firstname }}  
+    --admin-lastname={{ magento_admin_lastname }} 
   args:
     chdir: /var/www/html/magento
-  when: admin_user_check.rc == 0
+  register: admin_user_result
+  changed_when: "'created' in admin_user_result.stdout or 'updated' in admin_user_result.stdout"
+  failed_when: 
+    - admin_user_result.rc != 0
+    - "'already exists' not in admin_user_result.stderr"
+
+- name: Display admin user creation/update result
+  debug:
+    var: admin_user_result.stdout_lines
 
 - name: Flush Magento cache
   command: php8.1 bin/magento cache:flush
