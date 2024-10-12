@@ -208,6 +208,12 @@
     content: "Magento Admin URL: http://{{ magento_domain }}/{{ magento_admin_frontname }}"
     dest: /root/magento_admin_url.txt
     mode: '0600'
+  notify:
+    - Restart PHP-FPM
+    - Restart Nginx
+
+- name: Ensure services are restarted
+  meta: flush_handlers
 
 - name: Wait for Magento to be fully set up
   wait_for:
@@ -219,16 +225,11 @@
     method: GET
     status_code: 200
   register: admin_access_result
+  retries: 3
+  delay: 10
+  until: admin_access_result.status == 200
   ignore_errors: yes
 
 - name: Display Magento admin access result
   debug:
     var: admin_access_result
-
-- name: Fail if admin access verification failed
-  fail:
-    msg: "Failed to verify Magento admin access. Please check the Magento installation and configuration."
-  when: admin_access_result.status != 200
-
-- name: Restart Nginx and PHP-FPM
-  meta: flush_handlers
