@@ -28,10 +28,71 @@
   handlers:
     - include: roles/handlers/main.yml
 
-  post_tasks:
-    - name: Debug Magento database credentials
-      debug:
-        msg:
-          - "Magento DB User: {{ magento_db_user }}"
-          - "Magento DB Name: {{ magento_db_name }}"
-          - "Magento DB Password: {{ magento_db_password }}"
+  tasks:
+    - name: Ensure correct ownership and permissions for Magento directory
+      file:
+        path: /var/www/html/magento
+        owner: "{{ magento_user }}"
+        group: "{{ magento_group }}"
+        mode: '0755'
+        recurse: yes
+      
+    - name: Ensure var, pub, and app/etc directories are writable
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ magento_user }}"
+        group: "{{ magento_group }}"
+        mode: '0775'
+        recurse: yes
+      loop:
+        - /var/www/html/magento/var
+        - /var/www/html/magento/pub
+        - /var/www/html/magento/app/etc
+
+    - name: Flush Magento cache
+      become: yes
+      become_user: "{{ magento_user }}"
+      command: php bin/magento cache:flush
+      args:
+        chdir: /var/www/html/magento
+
+    - name: Create or update Magento admin user
+      become: yes
+      become_user: "{{ magento_user }}"
+      command: >
+        php bin/magento admin:user:create
+        --admin-user="{{ magento_admin_user }}"
+        --admin-password="{{ magento_admin_password }}"
+        --admin-email="{{ magento_admin_email }}"
+        --admin-firstname="{{ magento_admin_firstname }}"
+        --admin-lastname="{{ magento_admin_lastname }}"
+      args:
+        chdir: /var/www/html/magento
+      register: admin_user_result
+      changed_when: "'created' in admin_user_result.stdout or 'updated' in admin_user_result.stdout"
+      failed_when: 
+        - admin_user_result.rc != 0
+        - "'already exists' not in admin_user_result.stderr"
+
+    - name: Update phpMyAdmin configuration
+      template:
+        src: roles/phpmyadmin/templates/phpmyadmin.config.inc.php.j2
+        dest: /etc/phpmyadmin/config.inc.php
+        mode: '0644'
+      notify: Restart PHP-FPM
+
+    - name: Ensure credential directory exists
+      file:
+        path: /root/magento_credentials
+        state: directory
+        mode: '0700'
+
+    - name: Save Magento admin credentials
+      copy:
+        content: |
+          Magento Admin URL: http://{{ magento_domain }}/{{ magento_admin_frontname }}
+          Magento Admin Username: {{ magento_admin_user }}
+          Magento Admin Password: {{ magento_admin_password }}
+        dest: /root/magento_credentials/magento_admin_credentials.txt
+        mode: '0600'
