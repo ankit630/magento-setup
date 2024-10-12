@@ -46,8 +46,7 @@ This setup automates the following:
 The `run-magento-setup.sh` script automates the following:
 
 1. Installs Ansible if not already present
-2. Runs the Terraform scripts to provision an EC2 instance on AWS
-3. Executes the Ansible playbook to:
+2. Executes the Ansible playbook to:
    - Install and configure Nginx
    - Install and configure MariaDB (MySQL-compatible)
    - Install PHP 8.1 and necessary extensions
