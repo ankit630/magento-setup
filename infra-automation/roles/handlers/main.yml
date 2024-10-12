@@ -22,3 +22,6 @@
   systemd:
     name: nginx
     state: restarted
+
+- name: Reload logrotate
+  command: logrotate /etc/logrotate.conf
