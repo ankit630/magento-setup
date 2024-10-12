@@ -209,6 +209,7 @@
     url: "https://{{ magento_domain }}/{{ magento_admin_frontname }}"
     method: GET
     status_code: 200
+    validate_certs: no
   register: admin_access_result
   retries: 3
   delay: 10
