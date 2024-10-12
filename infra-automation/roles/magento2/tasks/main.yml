@@ -212,6 +212,27 @@
 
   become: yes
   become_user: "{{ magento_user }}"
-  notify:
-    - Restart Nginx
-    - Restart PHP-FPM
+
+- name: Wait for Magento to be fully set up
+  wait_for:
+    timeout: 10
+
+- name: Verify Magento installation and admin access
+  uri:
+    url: "http://{{ magento_domain }}/{{ magento_admin_frontname }}"
+    method: GET
+    status_code: 200
+  register: admin_access_result
+  ignore_errors: yes
+
+- name: Display Magento admin access result
+  debug:
+    var: admin_access_result
+
+- name: Fail if admin access verification failed
+  fail:
+    msg: "Failed to verify Magento admin access. Please check the Magento installation and configuration."
+  when: admin_access_result.status != 200
+
+- name: Restart Nginx and PHP-FPM
+  meta: flush_handlers
