@@ -38,7 +38,9 @@
     src: /etc/nginx/sites-available/magento.conf
     dest: /etc/nginx/sites-enabled/magento.conf
     state: link
-  notify: Test NGINX configuration
+  notify:
+    - Test NGINX configuration
+    - Restart Nginx
 
 - name: Remove default NGINX configuration
   file:
