@@ -115,9 +115,11 @@
     login_password: ""
     login_unix_socket: /var/run/mysqld/mysqld.sock
     query:
-      - GRANT ALL PRIVILEGES ON magento.* TO 'magento'@'%'
+      - GRANT ALL PRIVILEGES ON magento.* TO 'magento'@'%' IDENTIFIED BY '{{ magento_db_password }}'
       - FLUSH PRIVILEGES
   changed_when: false
+  vars:
+    magento_db_password: "{{ lookup('env', 'MAGENTO_DB_PASSWORD') }}"
 
 - name: Set fact for Magento database credentials
   set_fact:
