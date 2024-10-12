@@ -321,3 +321,29 @@
   debug:
     var: module_status.stdout_lines
 
+- name: Set correct permissions for Magento files
+  file:
+    path: /var/www/html/magento
+    owner: test-ssh
+    group: clp
+    mode: 'u=rwX,g=rX,o='
+    recurse: yes
+
+- name: Set more permissive permissions for specific directories
+  file:
+    path: "{{ item }}"
+    owner: test-ssh
+    group: clp
+    mode: 'u=rwX,g=rwX,o='
+    recurse: yes
+  loop:
+    - /var/www/html/magento/var
+    - /var/www/html/magento/pub/media
+    - /var/www/html/magento/app/etc
+
+- name: Ensure Magento CLI is executable
+  file:
+    path: /var/www/html/magento/bin/magento
+    owner: test-ssh
+    group: clp
+    mode: 'u+x,g+x'
