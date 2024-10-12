@@ -50,6 +50,12 @@
         - /var/www/html/magento/pub
         - /var/www/html/magento/app/etc
 
+    - name: Ensure PHP 8.1 is the default version
+      alternatives:
+        name: php
+        path: /usr/bin/php8.1
+      register: php_cli_alternative
+
     - name: Flush Magento cache
       become: yes
       become_user: "{{ magento_user }}"
