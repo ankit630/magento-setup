@@ -141,29 +141,16 @@
     mode: '0600'
 
 - name: Configure Magento for HTTP (Development Environment)
+  become: yes
+  become_user: magento
   block:
-    - name: Disable HTTPS in frontend
-      command: bin/magento config:set web/secure/use_in_frontend 0
+    - name: Enable HTTPS in frontend
+      command: bin/magento config:set web/secure/use_in_frontend 1
       args:
         chdir: /var/www/html/magento
 
-    - name: Disable HTTPS in admin
-      command: bin/magento config:set web/secure/use_in_adminhtml 0
-      args:
-        chdir: /var/www/html/magento
-
-    - name: Set unsecure base URL
-      command: bin/magento config:set web/unsecure/base_url "http://{{ magento_domain }}/"
-      args:
-        chdir: /var/www/html/magento
-
-    - name: Set secure base URL to HTTP
-      command: bin/magento config:set web/secure/base_url "http://{{ magento_domain }}/"
-      args:
-        chdir: /var/www/html/magento
-
-    - name: Flush Magento cache
-      command: bin/magento cache:flush
+    - name: Enable HTTPS in admin
+      command: bin/magento config:set web/secure/use_in_adminhtml 1
       args:
         chdir: /var/www/html/magento
 
@@ -188,8 +175,8 @@
 - name: Set base URLs
   command: "{{ item }}"
   loop:
-    - bin/magento config:set web/unsecure/base_url http://{{ magento_domain }}/
-    - bin/magento config:set web/secure/base_url http://{{ magento_domain }}/
+    - bin/magento config:set web/unsecure/base_url https://{{ magento_domain }}/
+    - bin/magento config:set web/secure/base_url https://{{ magento_domain }}/
   args:
     chdir: /var/www/html/magento
 
@@ -205,7 +192,7 @@
 
 - name: Save Magento admin URL
   copy:
-    content: "Magento Admin URL: http://{{ magento_domain }}/{{ magento_admin_frontname }}"
+    content: "Magento Admin URL: https://{{ magento_domain }}/{{ magento_admin_frontname }}"
     dest: /root/magento_admin_url.txt
     mode: '0600'
   notify:
@@ -221,7 +208,7 @@
 
 - name: Verify Magento installation and admin access
   uri:
-    url: "http://{{ magento_domain }}/{{ magento_admin_frontname }}"
+    url: "https://{{ magento_domain }}/{{ magento_admin_frontname }}"
     method: GET
     status_code: 200
   register: admin_access_result
