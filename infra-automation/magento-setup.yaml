@@ -10,6 +10,9 @@
     magento_db_password: "{{ lookup('env', 'MAGENTO_DB_PASSWORD') }}"
     magento_admin_frontname: "admin"
     magento_admin_password: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+    magento_admin_email: "ankit630@gmail.com"
+    magento_admin_firstname: "ankit"
+    magento_admin_lastname: "mittal"
 
   roles:
     - role: common
