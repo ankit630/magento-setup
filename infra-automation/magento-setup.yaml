@@ -13,6 +13,7 @@
     magento_admin_email: "ankit630@gmail.com"
     magento_admin_firstname: "ankit"
     magento_admin_lastname: "mittal"
+    magento_admin_user: "admin"
 
   roles:
     - role: common
