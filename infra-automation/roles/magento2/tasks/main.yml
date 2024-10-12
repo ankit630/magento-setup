@@ -93,9 +93,9 @@
     --db-name={{ magento_db_name }}
     --db-user={{ magento_db_user }}
     --db-password={{ magento_db_password }}
-    --admin-firstname=Admin
-    --admin-lastname=User
-    --admin-email=admin@example.com
+    --admin-firstname={{ magento_admin_firstname }} 
+    --admin-lastname={{ magento_admin_lastname }} 
+    --admin-email={{ magento_admin_email }} 
     --admin-user=admin
     --admin-password={{ magento_admin_password }}
     --language=en_US
@@ -233,6 +233,43 @@
 - name: Display Magento admin access result
   debug:
     var: admin_access_result
+
+- name: Check if admin user exists
+  command: php8.1 bin/magento admin:user:unlock {{ magento_admin_user }}
+  args:
+    chdir: /var/www/html/magento
+  register: admin_user_check
+  changed_when: false
+  failed_when: false
+
+- name: Create new admin user if not exists
+  command: >
+    php8.1 bin/magento admin:user:create 
+    --admin-user={{ magento_admin_user }} 
+    --admin-password={{ magento_admin_password }} 
+    --admin-email={{ magento_admin_email }} 
+    --admin-firstname={{ magento_admin_firstname }} 
+    --admin-lastname={{ magento_admin_lastname }}
+  args:
+    chdir: /var/www/html/magento
+  when: admin_user_check.rc != 0
+
+- name: Unlock admin user
+  command: php8.1 bin/magento admin:user:unlock {{ magento_admin_user }}
+  args:
+    chdir: /var/www/html/magento
+  when: admin_user_check.rc == 0
+
+- name: Reset admin password
+  command: php8.1 bin/magento admin:user:set-password {{ magento_admin_user }} {{ magento_admin_password }}
+  args:
+    chdir: /var/www/html/magento
+  when: admin_user_check.rc == 0
+
+- name: Flush Magento cache
+  command: php8.1 bin/magento cache:flush
+  args:
+    chdir: /var/www/html/magento
 
 - name: Disable Two-Factor Authentication modules
   command: php8.1 bin/magento module:disable Magento_AdminAdobeImsTwoFactorAuth Magento_TwoFactorAuth
