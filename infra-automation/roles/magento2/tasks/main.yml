@@ -166,6 +166,50 @@
       args:
         chdir: /var/www/html/magento
 
+- name: Get current admin frontend name
+  command: bin/magento info:adminuri
+  args:
+    chdir: /var/www/html/magento
+  register: current_admin_frontend
+  changed_when: false
+
+- name: Set admin frontend name
+  command: bin/magento setup:config:set --backend-frontname="{{ magento_admin_frontname }}"
+  args:
+    chdir: /var/www/html/magento
+  when: current_admin_frontend.stdout != magento_admin_frontname
+  vars:
+    magento_admin_frontname: "admin_{{ lookup('password', '/dev/null chars=ascii_lowercase,digits length=6') }}"
+
+- name: Enable URL rewrites
+  command: bin/magento config:set web/seo/use_rewrites 1
+  args:
+    chdir: /var/www/html/magento
+
+- name: Set base URLs
+  command: "{{ item }}"
+  loop:
+    - bin/magento config:set web/unsecure/base_url http://{{ magento_domain }}/
+    - bin/magento config:set web/secure/base_url http://{{ magento_domain }}/
+  args:
+    chdir: /var/www/html/magento
+
+- name: Flush Magento cache
+  command: bin/magento cache:flush
+  args:
+    chdir: /var/www/html/magento
+
+- name: Reindex Magento
+  command: bin/magento indexer:reindex
+  args:
+    chdir: /var/www/html/magento
+
+- name: Save Magento admin URL
+  copy:
+    content: "Magento Admin URL: http://{{ magento_domain }}/{{ magento_admin_frontname }}"
+    dest: /root/magento_admin_url.txt
+    mode: '0600'
+
   become: yes
   become_user: "{{ magento_user }}"
   notify:
