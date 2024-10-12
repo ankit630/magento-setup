@@ -5,6 +5,16 @@ upstream fastcgi_backend {
 server {
     listen 80;
     server_name {{ magento_domain }};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ magento_domain }};
+
+    ssl_certificate /etc/nginx/ssl/{{ magento_domain }}.crt;
+    ssl_certificate_key /etc/nginx/ssl/{{ magento_domain }}.key;
+    
     set $MAGE_ROOT /var/www/html/magento;
     set $MAGE_MODE developer; # or production
 
