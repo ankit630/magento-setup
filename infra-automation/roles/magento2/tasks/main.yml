@@ -102,6 +102,7 @@
     --currency=USD
     --timezone=America/Chicago
     --use-rewrites=1
+    --backend-frontname={{ magento_admin_frontname }}
     --search-engine=elasticsearch7
     --elasticsearch-host=localhost
   args:
