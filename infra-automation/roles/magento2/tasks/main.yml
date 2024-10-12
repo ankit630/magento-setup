@@ -108,6 +108,41 @@
   args:
     chdir: /var/www/html/magento
 
+- name: Configure Magento to use Redis for cache
+  command: >
+    php bin/magento setup:config:set 
+    --cache-backend=redis 
+    --cache-backend-redis-server=127.0.0.1 
+    --cache-backend-redis-db=0
+  args:
+    chdir: /var/www/html/magento
+
+- name: Configure Magento to use Redis for sessions
+  command: >
+    php bin/magento setup:config:set 
+    --session-save=redis 
+    --session-save-redis-host=127.0.0.1 
+    --session-save-redis-db=1
+  args:
+    chdir: /var/www/html/magento
+
+- name: Configure Magento to use Varnish
+  command: >
+    php bin/magento setup:config:set 
+    --http-cache-hosts=127.0.0.1:6081
+  args:
+    chdir: /var/www/html/magento
+
+- name: Enable Varnish caching in Magento
+  command: php bin/magento config:set system/full_page_cache/caching_application 2
+  args:
+    chdir: /var/www/html/magento
+
+- name: Flush Magento cache
+  command: php bin/magento cache:flush
+  args:
+    chdir: /var/www/html/magento
+
 - name: Set correct permissions for Magento files
   file:
     path: /var/www/html/magento
