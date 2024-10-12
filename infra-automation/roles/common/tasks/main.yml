@@ -10,3 +10,9 @@
       - curl
       - software-properties-common
     state: present
+
+- name: Ensure logrotate is installed
+  apt:
+    name: logrotate
+    state: present
+  become: yes
