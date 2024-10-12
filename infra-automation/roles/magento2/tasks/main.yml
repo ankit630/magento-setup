@@ -233,3 +233,40 @@
 - name: Display Magento admin access result
   debug:
     var: admin_access_result
+
+- name: Disable Two-Factor Authentication modules
+  command: php8.1 bin/magento module:disable Magento_AdminAdobeImsTwoFactorAuth Magento_TwoFactorAuth
+  args:
+    chdir: /var/www/html/magento
+
+- name: Compile Dependency Injection
+  command: php8.1 bin/magento setup:di:compile
+  args:
+    chdir: /var/www/html/magento
+
+- name: Deploy static content
+  command: php8.1 bin/magento setup:static-content:deploy -f
+  args:
+    chdir: /var/www/html/magento
+
+- name: Reindex Magento
+  command: php8.1 bin/magento indexer:reindex
+  args:
+    chdir: /var/www/html/magento
+
+- name: Flush Magento cache
+  command: php8.1 bin/magento cache:flush
+  args:
+    chdir: /var/www/html/magento
+
+- name: Check module status
+  command: php8.1 bin/magento module:status
+  args:
+    chdir: /var/www/html/magento
+  register: module_status
+  changed_when: false
+
+- name: Display module status
+  debug:
+    var: module_status.stdout_lines
+
