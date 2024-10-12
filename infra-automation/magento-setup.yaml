@@ -15,9 +15,11 @@
     magento_admin_lastname: "mittal"
     magento_admin_user: "admin"
     phpmyadmin_blowfish_secret: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=16') }}"
+    generate_ssl_cert_magento: true
 
   roles:
     - role: common
+    - role: ssl_cert
     - role: php
     - role: mysql
     - role: nginx
