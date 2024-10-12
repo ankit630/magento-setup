@@ -103,11 +103,21 @@
     name: magento
     password: "{{ magento_db_password }}"
     priv: 'magento.*:ALL'
-    host: localhost
+    host: '%'
     state: present
     login_user: root
     login_password: ""
     login_unix_socket: /var/run/mysqld/mysqld.sock
+
+- name: Ensure Magento user has correct privileges
+  mysql_query:
+    login_user: root
+    login_password: ""
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    query:
+      - GRANT ALL PRIVILEGES ON magento.* TO 'magento'@'%'
+      - FLUSH PRIVILEGES
+  changed_when: false
 
 - name: Set fact for Magento database credentials
   set_fact:
