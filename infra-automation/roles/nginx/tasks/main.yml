@@ -45,3 +45,10 @@
     path: /etc/nginx/sites-enabled/default
     state: absent
   notify: Test NGINX configuration
+
+- name: Set up log rotation for phpMyAdmin NGINX logs
+  template:
+    src: phpmyadmin-logrotate.j2
+    dest: /etc/logrotate.d/nginx-phpmyadmin
+    mode: '0644'
+  notify: Reload logrotate
