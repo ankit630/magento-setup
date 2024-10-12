@@ -4,6 +4,10 @@ server {
     root /usr/share/phpmyadmin;
     index index.php index.html index.htm;
 
+    # Logging configuration
+    access_log /var/log/nginx/phpmyadmin_access.log;
+    error_log /var/log/nginx/phpmyadmin_error.log;
+
     location / {
         try_files $uri $uri/ /index.php$is_args$args;
     }
@@ -15,6 +19,10 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param PATH_INFO $fastcgi_path_info;
+
+        # Additional logging for PHP requests
+        fastcgi_intercept_errors on;
+        error_log /var/log/nginx/phpmyadmin_php_error.log;
     }
 
     location ~ /\.ht {
